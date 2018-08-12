@@ -10,41 +10,40 @@ import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var audioManager: AudioManager
-    private var value = 30
+//    private lateinit var audioManager: AudioManager
+    private var total = 100
+    private var value = total/2
+    private var visibleDot = 5
+    private var interval = total/ visibleDot
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        //audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
         btnPrev.setOnClickListener(object: View.OnClickListener{
             override fun onClick(p0: View?) {
-                if(value < 10) return
-                value = value - 10
-                volumeBar.setVolumeLevel(value)
+                volumeBar.prevPage()
             }
         })
         btnNext.setOnClickListener(object: View.OnClickListener{
             override fun onClick(p0: View?) {
-                if(value > 100) return
-                value = value + 10
-                volumeBar.setVolumeLevel(value)
+              volumeBar.nextPage()
             }
-
         })
 
-        volumeBar.calibrateVolumeLevels(
-                100,
+        volumeBar.calibrateLevels(
+
                 value)
     }
 
     override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
         super.dispatchKeyEvent(event)
-        if (event?.keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
-                event?.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
-            volumeBar.setVolumeLevel(audioManager.getStreamVolume(AudioManager.STREAM_SYSTEM))
-        }
+//        if (event?.keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
+//                event?.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+//            volumeBar.setVolumeLevel(audioManager.getStreamVolume(AudioManager.STREAM_SYSTEM))
+//        }
         return false
     }
 }

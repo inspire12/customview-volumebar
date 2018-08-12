@@ -12,25 +12,36 @@ import android.view.View
 
 class VolumeBarView(context: Context, attrs: AttributeSet?) : View(context, attrs) {
 
-    private val barPaint = Paint()
     private val thumbPaint = Paint()
 
     private val defaultBarWidth = resources.getDimensionPixelSize(R.dimen.volume_bar_default_width)
     private val defaultBarHeight = resources.getDimensionPixelSize(R.dimen.volume_bar_default_height)
 
-    private var volumeLevelsCount: Int? = null
-    private var currentVolumeLevel: Int? = null
-
     private val colorEvaluator = ArgbEvaluator()
     private var dotColor = R.color.colorPrimary
     private var selectedDotColor = R.color.colorAccent
-    private var visibleDot = 5
+
+    /* 페이지 네이트 값 처리*/
+    private var visibleDot:Int = 5
+    private var total = 100
+    private var interval = 20
+    private var curLoc = 0
+    private var isPrev = true
+    /**
+     * 50 으로 시작
+     * 좌우 20씩으로 해서
+     * 10 30 50 70 90 5개 보여주기
+     * 일단 반지름은 똑같게 처리 + 애니메이션 처리
+     * 안보이는 거 -10 110 도 있어야 할거 같다
+     *
+     */
 
 
-    init {
-        barPaint.color = Color.GRAY
-        thumbPaint.color = Color.RED
-        //var attributes :TypedArray = context.obtainStyledAttributes(attrs, )
+
+    fun settingIndicator(total: Int, visibleDot: Int){
+        this.total = total
+        this.visibleDot = visibleDot
+        this.interval = total / visibleDot
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -46,33 +57,66 @@ class VolumeBarView(context: Context, attrs: AttributeSet?) : View(context, attr
             View.MeasureSpec.UNSPECIFIED -> defaultBarWidth
             else -> defaultBarWidth
         }
-
         val height = when (heightMode) {
             View.MeasureSpec.EXACTLY -> heightSize
             View.MeasureSpec.AT_MOST -> defaultBarHeight
             View.MeasureSpec.UNSPECIFIED -> defaultBarHeight
             else -> defaultBarHeight
         }
+        curLoc = height / 2
+        interval = (width - height) / (visibleDot-1)
 
         setMeasuredDimension(width, height)
     }
 
     override fun onDraw(canvas: Canvas) {
-        drawBar(canvas)
+
         drawThumb(canvas)
     }
 
-    private fun drawBar(canvas: Canvas) {
-        canvas.drawRect(0.0F, 0.0F, width.toFloat(), height.toFloat(), barPaint)
+    fun prevPage(){
+        isPrev = true
+        setAnimation(interval+ height/2, height/2)
+    }
+
+    fun nextPage(){
+        isPrev = false
+        setAnimation(height/2, interval+height/2)
     }
 
     private fun drawThumb(canvas: Canvas) {
-        val thumbX = calculateThumbX()
+        var thumbX = 0F
         val thumbY = height.toFloat() / 2.0F
-        val radius = height.toFloat() / 2.0F
+        var radius = height.toFloat() / 2.0F
         thumbPaint.isAntiAlias = true
         thumbPaint.color = calculateDotColor(radius)
-        canvas.drawCircle(thumbX, thumbY, radius, thumbPaint)
+
+        for (i in -1 until visibleDot +1 ){
+            thumbX = curLoc + (interval * i).toFloat()
+            if(radius > interval){
+                radius = interval.toFloat()
+            }
+            if(isPrev){
+                if(i == visibleDot / 2 ){
+                    // 가운데 는 다른 색깔?
+                    thumbPaint.color = Color.RED
+                    canvas.drawCircle(thumbX, thumbY, radius, thumbPaint)
+                }else{
+                    thumbPaint.color = Color.GRAY
+                }
+            }else{
+                if(i == visibleDot / 2 - 1){
+                    // 가운데 는 다른 색깔?
+                    thumbPaint.color = Color.RED
+                    canvas.drawCircle(thumbX, thumbY, radius, thumbPaint)
+                }else{
+                    thumbPaint.color = Color.GRAY
+                }
+            }
+
+
+            canvas.drawCircle(thumbX, thumbY, radius, thumbPaint)
+        }
         // 애니메이션 적용
     }
 
@@ -80,38 +124,29 @@ class VolumeBarView(context: Context, attrs: AttributeSet?) : View(context, attr
         return colorEvaluator.evaluate(dotScale, dotColor, selectedDotColor) as Int
     }
 
-    private fun calculateThumbX(): Float {
-        val volumeLevelsCount = this.volumeLevelsCount
-        val currentVolumeLevel = this.currentVolumeLevel
 
-        return if (volumeLevelsCount != null && currentVolumeLevel != null) {
-            ((width - height) / volumeLevelsCount * currentVolumeLevel).toFloat() + height / 2.0F
-        } else {
-            0.0F
-        }
-    }
+    /**
+     * currentLoc :
+     */
+    fun calibrateLevels(currentLoc: Int) {
 
-    fun calibrateVolumeLevels(volumeLevelsCount: Int, currentVolumeLevel: Int) {
-        this.volumeLevelsCount = volumeLevelsCount
-        this.currentVolumeLevel = currentVolumeLevel
         // 다시 그리기
         invalidate()
     }
 
-    fun setVolumeLevel(volumeLevel: Int) {
+    fun  setAnimation(prevLoc:Int, nextLoc: Int) {
         // 이전 current VolumeLevel
         // 이후 volumeLeve
-        var animator: ValueAnimator = ValueAnimator.ofInt(currentVolumeLevel!!.toInt(), volumeLevel)
-        animator.setDuration(200)
+
+        var animator: ValueAnimator = ValueAnimator.ofInt(prevLoc, nextLoc)
+        animator.setDuration(500)
         animator.addUpdateListener(object : ValueAnimator.AnimatorUpdateListener{
             override fun onAnimationUpdate(p0: ValueAnimator?) {
-                currentVolumeLevel = p0!!.getAnimatedValue() as Int?
+                curLoc = p0!!.getAnimatedValue() as Int
                 invalidate()
             }
         })
         animator.start()
-        currentVolumeLevel = volumeLevel
-
         invalidate()
     }
 
