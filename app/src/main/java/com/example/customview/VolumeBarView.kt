@@ -1,6 +1,9 @@
 package com.example.customview
 
+import android.animation.ArgbEvaluator
+import android.animation.ValueAnimator
 import android.content.Context
+import android.content.res.TypedArray
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -18,9 +21,16 @@ class VolumeBarView(context: Context, attrs: AttributeSet?) : View(context, attr
     private var volumeLevelsCount: Int? = null
     private var currentVolumeLevel: Int? = null
 
+    private val colorEvaluator = ArgbEvaluator()
+    private var dotColor = R.color.colorPrimary
+    private var selectedDotColor = R.color.colorAccent
+    private var visibleDot = 5
+
+
     init {
         barPaint.color = Color.GRAY
         thumbPaint.color = Color.RED
+        //var attributes :TypedArray = context.obtainStyledAttributes(attrs, )
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -60,8 +70,14 @@ class VolumeBarView(context: Context, attrs: AttributeSet?) : View(context, attr
         val thumbX = calculateThumbX()
         val thumbY = height.toFloat() / 2.0F
         val radius = height.toFloat() / 2.0F
-
+        thumbPaint.isAntiAlias = true
+        thumbPaint.color = calculateDotColor(radius)
         canvas.drawCircle(thumbX, thumbY, radius, thumbPaint)
+        // 애니메이션 적용
+    }
+
+    private fun calculateDotColor( dotScale: Float): Int{
+        return colorEvaluator.evaluate(dotScale, dotColor, selectedDotColor) as Int
     }
 
     private fun calculateThumbX(): Float {
@@ -78,11 +94,24 @@ class VolumeBarView(context: Context, attrs: AttributeSet?) : View(context, attr
     fun calibrateVolumeLevels(volumeLevelsCount: Int, currentVolumeLevel: Int) {
         this.volumeLevelsCount = volumeLevelsCount
         this.currentVolumeLevel = currentVolumeLevel
+        // 다시 그리기
         invalidate()
     }
 
     fun setVolumeLevel(volumeLevel: Int) {
+        // 이전 current VolumeLevel
+        // 이후 volumeLeve
+        var animator: ValueAnimator = ValueAnimator.ofInt(currentVolumeLevel!!.toInt(), volumeLevel)
+        animator.setDuration(200)
+        animator.addUpdateListener(object : ValueAnimator.AnimatorUpdateListener{
+            override fun onAnimationUpdate(p0: ValueAnimator?) {
+                currentVolumeLevel = p0!!.getAnimatedValue() as Int?
+                invalidate()
+            }
+        })
+        animator.start()
         currentVolumeLevel = volumeLevel
+
         invalidate()
     }
 
