@@ -3,7 +3,6 @@ package com.example.customview
 import android.animation.ArgbEvaluator
 import android.animation.ValueAnimator
 import android.content.Context
-import android.content.res.TypedArray
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -27,6 +26,9 @@ class VolumeBarView(context: Context, attrs: AttributeSet?) : View(context, attr
     private var interval = 20
     private var curLoc = 0
     private var isPrev = true
+
+    /* 애니메이션 처리 */
+    private var mDuration = 500L
     /**
      * 50 으로 시작
      * 좌우 20씩으로 해서
@@ -90,9 +92,9 @@ class VolumeBarView(context: Context, attrs: AttributeSet?) : View(context, attr
         var radius = height.toFloat() / 2.0F
         thumbPaint.isAntiAlias = true
         thumbPaint.color = calculateDotColor(radius)
-
+//var i = 0
         for (i in -1 until visibleDot +1 ){
-            thumbX = curLoc + (interval * i).toFloat()
+            thumbX = calcualate(curLoc.toFloat(),  0F, (interval+height/2).toFloat()) + (interval * i).toFloat()
             if(radius > interval){
                 radius = interval.toFloat()
             }
@@ -138,8 +140,11 @@ class VolumeBarView(context: Context, attrs: AttributeSet?) : View(context, attr
         // 이전 current VolumeLevel
         // 이후 volumeLeve
 
+        /**
+         * 인터폴레이션
+         */
         var animator: ValueAnimator = ValueAnimator.ofInt(prevLoc, nextLoc)
-        animator.setDuration(500)
+        animator.setDuration(mDuration)
         animator.addUpdateListener(object : ValueAnimator.AnimatorUpdateListener{
             override fun onAnimationUpdate(p0: ValueAnimator?) {
                 curLoc = p0!!.getAnimatedValue() as Int
@@ -149,6 +154,39 @@ class VolumeBarView(context: Context, attrs: AttributeSet?) : View(context, attr
         animator.start()
         invalidate()
     }
+
+    /**
+     * https://github.com/daimajia/AnimationEasingFunctions
+     */
+    fun calcualate(curLoc: Float, preLoc: Float, nextLoc: Float): Float{
+        CustomLog.d(curLoc.toString())
+        CustomLog.d(preLoc.toString())
+        CustomLog.d(nextLoc.toString())
+        // linear
+        // t 0 ~ mDration
+        // b = 0
+        // c = 최대
+
+        var t = curLoc / nextLoc * mDuration
+        val b = preLoc
+        val c = nextLoc
+        val d = mDuration
+
+        /* linear*/
+         var value = c*t /d + b
+//      /*
+//        t = t/d-1
+//        return c * Math.sqrt((1 - t * t).toDouble()).toFloat() + b;
+//        t = t / d -1
+//        var value = c * (t * t * t * t * t + 1) + b
+
+        /* 애니메이션 범위 */
+        if(value < preLoc) value = preLoc
+        else if(value > nextLoc) value = nextLoc
+
+        return value
+    }
+
 
 }
 
